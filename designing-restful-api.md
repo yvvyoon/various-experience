@@ -218,3 +218,131 @@ $ curl -i -H "Content-Type: application/json" -X PUT -d '{"done": True}' http://
 $ curl -i -H "Content-Type: application/json" -X DELETE http://localhost:5000/todo/api/v1.0/tasks/3
 ```
 
+<br>
+
+### 할 일의 ID를 URI로 대체
+
+```python
+...
+
+@app.route('/todo/api/v1.0/tasks', methods=['GET'])
+def get_tasks():
+    # return jsonify({'tasks': tasks})
+    # 리스트 내포를 사용
+    return jsonify(({'tasks': [make_public_task(task) for task in tasks]}))
+
+...
+  
+def make_public_task(task):
+    new_task = {}
+
+    for field in task:
+        if field == 'id':
+          	# url_for(): 라우팅이 설정된 함수에 대한 URL을 얻어오기 위한 함수
+            new_task['uri'] = url_for('get_task', task_id=task['id'], _external=True)
+        else:
+            new_task[field] = task[field]
+
+    return new_task
+```
+
+<br>
+
+### 사용자 인증
+
+이번 예제에서 데이터베이스를 사용하지 않고 간단하게 한 명의 사용자만 인증하는 기능을 구현해보자. 먼저 Flask의 `flask-httpauth` 익스텐션을 설치한다.
+
+`pip install flask-httpauth`
+
+```python
+@auth.get_password
+def get_password(username):
+    if username == 'yoon':
+        return 'python'
+
+    return None
+
+
+@auth.error_handler
+def unauthorized():
+    return make_response(jsonify({'error': 'Unauthorized access'}), 401)
+```
+
+<br>
+
+`auth`에 관련된 데코레이터를 설정해주고, `get_task()` 메소드에 로그인되지 않은 사용자는 접근이 불가능하도록 하는 데코레이터도 설정해준다.
+
+```python
+@app.route('/todo/api/v1.0/tasks', methods=['GET'])
+@auth.login_required
+def get_tasks():
+    return jsonify(({'tasks': [make_public_task(task) for task in tasks]}))
+```
+
+<br>
+
+로그인하지 않고 URL을 요청하면 설정했던 에러 메시지가 출력된다.
+
+```
+$ curl -i http://127.0.0.1:5000/todo/api/v1.0/tasks
+```
+
+```json
+// 20191209134422
+// http://localhost:5000/api
+
+{
+  "error": "Not found"
+}
+```
+
+<br>
+
+ID와 비밀번호를 설정하여 curl을 날리면 정상적으로 할 일이 출력된다.
+
+```
+$ curl -u yoon:python -i http://127.0.0.1:5000/todo/api/v1.0/tasks
+```
+
+```json
+// 20191209134556
+// http://localhost:5000/todo/api/v1.0/tasks
+
+{
+  "tasks": [
+    {
+      "description": "우유, 치즈, 피자, 과일, 타이레놀",
+      "done": false,
+      "title": "식료품 사기",
+      "uri": "http://localhost:5000/todo/api/v1.0/tasks/1"
+    },
+    {
+      "description": "괜찮은 파이썬 튜토리얼 찾기",
+      "done": false,
+      "title": "파이썬 배우기",
+      "uri": "http://localhost:5000/todo/api/v1.0/tasks/2"
+    }
+  ]
+}
+```
+
+<br>
+
+그러나, 웹 서비스를 개발할 때 인증 실패에 관한 에러 코드는 401보다 403을 권장하는 것으로 보인다.
+
+<br>
+
+> *401: Unauthorized*
+>
+> *403: Forbidden*
+
+<br>
+
+401을 사용하면 인증되지 않은 채 서비스에 접속하면 브라우저에서 로그인하라는 팝업을 띄운다. 보통 이런 팝업은 쓰지 않고 서비스 내에서 자체적인 로그인 로직을 태운다.
+
+![image](https://user-images.githubusercontent.com/12066892/70408628-2f540300-1a8c-11ea-9f12-2c7f42852564.png)
+
+403은 단순 에러만 뱉어내기 때문에 일반적으로 `403 Forbidden`으로 권장한다.
+
+<br>
+
