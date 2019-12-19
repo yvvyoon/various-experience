@@ -10,25 +10,32 @@ EC2에 프로젝트를 새로 적재하든, 새로운 개발 환경에서 MySQL�
 
 ### root 계정 패스워드 변경
 
-> **$ sudo mysql -u root**
->
-> **mysql> ALTER USER 'root'@'localhost' IDENTIFIED WITH MYSQL_NATIVE_PASSWORD BY 'root';**
->
-> **mysql> FLUSH PRIVILEGES;**
+```
+$ sudo mysql -u root
+```
+
+```
+mysql> ALTER USER 'root'@'localhost' IDENTIFIED WITH MYSQL_NATIVE_PASSWORD BY 'root';
+mysql> FLUSH PRIVILEGES;
+```
 
 <br>
 
 ### 데이터베이스 생성
 
-> **mysql> CREATE DATABASE djboard CHARACTER SET utf8 COLLATE utf8_bin;**
+```
+mysql> CREATE DATABASE djboard CHARACTER SET utf8 COLLATE utf8_bin;
+```
 
 <br>
 
 ### 계정 생성
 
-> **mysql> CREATE USER 'yoon'@'localhost' IDENTIFIED BY 'yoon' PASSWORD EXPIRE NEVER;**
->
-> **mysql> GRANT ALL PRIVILEGES ON djboard.* TO 'yoon'@'localhost' IDENTIFIED BY 'yoon';**
+```
+mysql> CREATE USER 'yoon'@'localhost' IDENTIFIED BY 'yoon' PASSWORD EXPIRE NEVER;
+mysql> GRANT ALL PRIVILEGES ON djboard.* TO 'yoon'@'localhost' IDENTIFIED BY 'yoon';
 
-<br>
+MySQL을 docker 컨테이너로 사용하려고 세팅하려니 위 grant문이 먹히지 않았다. 아래 커맨드로 하니 정상적으로 부여된다.
 
+mysql> GRANT ALL PRIVILEGES TO djboard.* TO 'yoon'@'localhost' WITH GRANT OPTION;
+```
